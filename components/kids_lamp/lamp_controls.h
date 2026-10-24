@@ -11,7 +11,7 @@ enum Gesture { NONE, SINGLE, DOUBLE, LONG, WAKE };
 
 struct RGB { float r, g, b; };
 static constexpr RGB PALETTE[] = {
-    {1.0f, 0.35f, 0.05f},  // Warm white: starting point, tune on the real rings.
+    {1.0f, 0.85f, 0.70f},  // Soft warm white; tune on the real rings.
     {1.0f, 0.8f, 0.0f},   // Yellow.
     {0.0f, 1.0f, 0.0f},   // Green.
     {0.0f, 0.6f, 1.0f},   // Light blue.

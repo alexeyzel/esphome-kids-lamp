@@ -10,7 +10,7 @@ inline void draw(esphome::display::Display &it, const Controls &ui,
                  esphome::light::LightState *left,
                  esphome::light::LightState *right, uint32_t now) {
   using esphome::Color;
-  const Color ink(190, 190, 190), muted(45, 45, 45), accent(255, 170, 60), black(0, 0, 0);
+  const Color ink(190, 190, 190), muted(45, 45, 45), accent(255, 217, 179), black(0, 0, 0);
   it.fill(black);
 
   // Vector icons and seven-segment numbers avoid font/image downloads.
@@ -62,7 +62,7 @@ inline void draw(esphome::display::Display &it, const Controls &ui,
   };
 
   if (ui.sleeping) {
-    bulb(64, 62, 7, Color(65, 40, 15), false);
+    bulb(64, 62, 7, Color(65, 55, 45), false);
     return;
   }
 
@@ -81,7 +81,7 @@ inline void draw(esphome::display::Display &it, const Controls &ui,
       bulb(x, 73, 13, z.is_on() ? c : muted, z.is_on());
     }
   } else {
-    arrow(64 + (ui.selected == 0 ? 7 : -7), 4, ui.selected == 1, 14, accent);
+    arrow(64 + (ui.selected == 0 ? 7 : -7), 8, ui.selected == 1, 14, accent);
     it.filled_circle(112, 12, 4, on ? actual : muted);
     if (ui.page == MENU) {
       palette(22, 60, 12);
@@ -113,7 +113,7 @@ inline void draw(esphome::display::Display &it, const Controls &ui,
     }
   }
   float progress = ui.hold_progress(now);
-  if (progress > 0) it.filled_rectangle(0, 123, int(progress * 128), 5, accent);
+  if (progress > 0) it.filled_rectangle(0, 0, int(progress * 128), 5, accent);
 }
 
 }  // namespace kids_lamp

@@ -124,8 +124,8 @@ light:
       state: OFF
       brightness: 30%
       red: 100%
-      green: 35%
-      blue: 5%
+      green: 85%
+      blue: 70%
 
   - platform: partition
     id: herman_light
@@ -141,8 +141,8 @@ light:
       state: OFF
       brightness: 30%
       red: 100%
-      green: 35%
-      blue: 5%
+      green: 85%
+      blue: 70%
 
 button:
   - platform: template
