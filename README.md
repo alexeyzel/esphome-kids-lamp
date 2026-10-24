@@ -4,18 +4,18 @@
 
 ## Установлення через Home Assistant
 
-Потрібен ESPHome **2026.10.0 або новіший**. У редакторі YAML наявного пристрою `kids-night-lamp` замінити конфігурацію на:
+Потрібен ESPHome **2026.10.0 або новіший**. Залишити власні розділи `esphome`, `esp32`, `logger`, `api`, `ota`, `wifi`, `captive_portal` з назвою пристрою та обліковими даними. Нижче додати:
 
 ```yaml
 packages:
   kids_night_lamp:
     url: https://github.com/alexeyzel/esphome-kids-lamp
     ref: main
-    files: [kids-night-lamp.yaml]
+    files: [packages/lamp.yaml]
     refresh: 0s
 ```
 
-Скопійований варіант: [examples/home-assistant.yaml](examples/home-assistant.yaml). У власному `secrets.yaml` залишити ключі `wifi_ssid`, `wifi_password`, `api_encryption_key`, `fallback_ap_password`; назви й приклади — у [secrets.yaml.example](secrets.yaml.example). Справжні секрети в репозиторій не додавати.
+Блок для додавання: [examples/home-assistant.yaml](examples/home-assistant.yaml). Пакет `packages/lamp.yaml` не містить посилань на секрети: API-ключ і пароль fallback AP беруться лише з локальної базової конфігурації. Додаткові ключі в `secrets.yaml` для них не потрібні, якщо вони вже задані локально. Wi-Fi залишити з власними `!secret wifi_ssid` / `!secret wifi_password`. Справжні секрети в репозиторій не додавати. Повний приклад із секретами — [kids-night-lamp.yaml](kids-night-lamp.yaml).
 
 Натиснути **Validate**, потім **Install** звичним способом. ESPHome сам завантажить YAML-пакет і допоміжні C++ заголовки через `external_components`. Окремо створювати або копіювати `.h` файли в Home Assistant не потрібно. Зібрана прошивка працює без доступу до GitHub, HA або Wi-Fi; інтернет потрібен під час завантаження джерел для збірки.
 
@@ -46,7 +46,8 @@ substitutions:
 
 ## Структура та перевірки
 
-- `kids-night-lamp.yaml` — повна конфігурація з Git-завантаженням заголовків.
+- `kids-night-lamp.yaml` — повний приклад базової конфігурації з локальним підключенням пакета.
+- `packages/lamp.yaml` — меню, світло й апаратні налаштування без облікових даних; підключається до власної базової конфігурації.
 - `components/kids_lamp/` — заголовки меню та малювання і мінімальний Python-адаптер для завантаження через штатний механізм ESPHome; власних драйверів обладнання немає.
 - `examples/home-assistant.yaml` — короткий YAML для Device Builder.
 - `tests/lamp_controls_test.cpp` — автономні тести обробника натискань.

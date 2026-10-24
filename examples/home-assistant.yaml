@@ -1,10 +1,10 @@
-# Paste this into the existing kids-night-lamp device in ESPHome Device Builder.
-# Keep your existing secrets.yaml. ESPHome 2026.10.0+ is required.
+# Append this AFTER your existing esphome/esp32/logger/api/ota/wifi/captive_portal.
+# Keep your local credentials and identity unchanged. ESPHome 2026.10.0+.
 packages:
   kids_night_lamp:
     url: https://github.com/alexeyzel/esphome-kids-lamp
     ref: main
-    files: [kids-night-lamp.yaml]
+    files: [packages/lamp.yaml]
     refresh: 0s
 
 # For an older GC9107 panel, uncomment:

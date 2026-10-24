@@ -2,7 +2,7 @@
 
 ## Файли й версія
 
-ESPHome **2026.10.0 або новіший**. Для ESPHome Device Builder достатньо короткого YAML із [examples/home-assistant.yaml](../examples/home-assistant.yaml): він завантажує конфігурацію через `packages`, а заголовки меню — через `external_components` із GitHub. Вручну копіювати `.h` файли до Home Assistant більше не потрібно. Повна інструкція — у [README](../README.md).
+ESPHome **2026.10.0 або новіший**. У ESPHome Device Builder залишити власну базову конфігурацію та додати блок із [examples/home-assistant.yaml](../examples/home-assistant.yaml): він завантажує `packages/lamp.yaml` через `packages`, а заголовки меню — через `external_components` із GitHub. Вручну копіювати `.h` файли до Home Assistant більше не потрібно. Повна інструкція — у [README](../README.md).
 
 Заголовки зберігаються в `components/kids_lamp/`. Мінімальний Python-адаптер лише підключає їх до збірки штатним завантажувачем ESPHome; логіку меню та драйвери обладнання не змінено.
 

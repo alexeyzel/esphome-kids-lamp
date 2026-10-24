@@ -1,0 +1,252 @@
+# ESPHome 2026.10+. Helper headers are fetched from GitHub automatically.
+substitutions:
+  project_ref: main
+  # Current AtomS3R. Older GC9107: model GC9107, lcd_pad_y '1';
+  # other values unchanged (ESPHome's GC9107 profile). See docs/testing-menu.md.
+  lcd_model: ST7735
+  lcd_offset_x: '2'
+  lcd_offset_y: '1'
+  lcd_pad_y: '3'
+  lcd_rotation: '180'
+  lcd_invert: 'true'
+  screen_active_pwm: '80'
+  screen_idle_pwm: '3'
+  long_press_ms: '700'
+  double_click_ms: '350'
+  screen_idle_ms: '30000'
+
+esphome:
+  min_version: 2026.10.0
+  on_boot:
+    priority: -100
+    then:
+      - lambda: |-
+          id(ui).long_ms = ${long_press_ms};
+          id(ui).double_ms = ${double_click_ms};
+          id(ui).idle_ms = ${screen_idle_ms};
+          id(ui).last_activity = millis();
+          // LP5562 reset. Standard i2c_device, no external component.
+          if (!id(lcd_driver).write_byte(0x0D, 0xFF))
+            ESP_LOGE("backlight", "LP5562 reset failed at I2C 0x30");
+      - delay: 1ms
+      - lambda: |-
+          id(lcd_driver).write_byte(0x00, 0x40);
+      - delay: 1ms
+      - lambda: |-
+          id(lcd_driver).write_byte(0x08, 0x01);  // Internal clock.
+          id(lcd_driver).write_byte(0x01, 0x00);  // Direct PWM.
+          id(lcd_driver).write_byte(0x70, 0x00);
+          // Keep unused onboard RGB off. White channel drives LCD backlight.
+          id(lcd_driver).write_byte(0x02, 0);
+          id(lcd_driver).write_byte(0x03, 0);
+          id(lcd_driver).write_byte(0x04, 0);
+          id(lcd_driver).write_byte(0x0F, 175);  // 17.5 mA, M5Stack example.
+          id(lcd_driver).write_byte(0x0E, ${screen_active_pwm});
+          id(backlight_sleeping) = false;
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/alexeyzel/esphome-kids-lamp
+      ref: ${project_ref}
+    components: [kids_lamp]
+    refresh: 0s
+
+# Header-only packaging adapter; hardware uses standard ESPHome components.
+kids_lamp:
+
+# Batch writes to limit flash wear. Wait 5 s after changes before cutting power.
+preferences:
+  flash_write_interval: 5s
+
+api:
+  reboot_timeout: 0s
+
+wifi:
+  reboot_timeout: 0s
+
+i2c:
+  id: internal_bus
+  sda:
+    number: GPIO45
+    ignore_strapping_warning: true
+  scl:
+    number: GPIO0
+    ignore_strapping_warning: true
+  scan: true
+  frequency: 100kHz
+
+i2c_device:
+  - id: lcd_driver
+    i2c_id: internal_bus
+    address: 0x30
+
+spi:
+  clk_pin: GPIO15
+  mosi_pin: GPIO21
+
+globals:
+  - id: ui
+    type: kids_lamp::Controls
+    restore_value: false
+    initial_value: 'kids_lamp::Controls()'
+  - id: backlight_sleeping
+    type: bool
+    restore_value: false
+    initial_value: 'false'
+
+light:
+  # Transport only: HA controls the two partitions, never the parent strip.
+  - platform: esp32_rmt_led_strip
+    id: led_rings
+    internal: true
+    # Grove white wire (GPIO1) -> DI of ring 1; ring 1 DO -> ring 2 DI.
+    pin: GPIO1
+    num_leds: 16
+    chipset: ws2812
+    # Typical WS2812 order; adjust if the displayed colors are swapped.
+    channel_colors: GRB
+    default_transition_length: 0s
+    initial_state:
+      state: OFF
+
+  - platform: partition
+    id: polina_light
+    name: "Нічник Поліни"
+    segments:
+      - id: led_rings
+        from: 0
+        to: 7
+    default_transition_length: 1s
+    restore_state:
+      state: OFF
+    initial_state:
+      state: OFF
+      brightness: 30%
+      red: 100%
+      green: 35%
+      blue: 5%
+
+  - platform: partition
+    id: herman_light
+    name: "Нічник Германа"
+    segments:
+      - id: led_rings
+        from: 8
+        to: 15
+    default_transition_length: 1s
+    restore_state:
+      state: OFF
+    initial_state:
+      state: OFF
+      brightness: 30%
+      red: 100%
+      green: 35%
+      blue: 5%
+
+button:
+  - platform: template
+    name: "Увімкнути обидва"
+    icon: mdi:lightbulb-group
+    on_press:
+      - light.turn_on: polina_light
+      - light.turn_on: herman_light
+  - platform: template
+    name: "Вимкнути обидва"
+    icon: mdi:lightbulb-group-off
+    on_press:
+      - light.turn_off: polina_light
+      - light.turn_off: herman_light
+
+binary_sensor:
+  - platform: gpio
+    id: front_button
+    internal: true
+    pin:
+      number: GPIO41
+      mode: INPUT_PULLUP
+      inverted: true
+    filters:
+      - delayed_on_off: 20ms
+
+interval:
+  - interval: 10ms
+    then:
+      - lambda: |-
+          auto &controls = id(ui);
+          const auto gesture = controls.poll(millis(), id(front_button).state);
+          using namespace kids_lamp;
+          auto *lamp = controls.selected == 0 ? id(polina_light) : id(herman_light);
+          if (gesture == SINGLE) {
+            if (controls.page == HOME) {
+              controls.selected ^= 1;
+            } else if (controls.page == MENU) {
+              controls.menu_item = (controls.menu_item + 1) % 3;
+            } else if (controls.page == BRIGHTNESS) {
+              auto call = lamp->turn_on();
+              call.set_brightness(next_brightness(lamp->remote_values.get_brightness()));
+              call.perform();
+            } else if (controls.page == COLOR) {
+              const auto &v = lamp->remote_values;
+              int next = (palette_index(v.get_red(), v.get_green(), v.get_blue()) + 1) % 5;
+              auto call = lamp->turn_on();
+              call.set_rgb(PALETTE[next].r, PALETTE[next].g, PALETTE[next].b);
+              call.perform();
+            }
+          } else if (gesture == DOUBLE) {
+            if (controls.page == HOME) {
+              bool any_on = id(polina_light).remote_values.is_on() ||
+                            id(herman_light).remote_values.is_on();
+              auto left = id(polina_light).make_call();
+              auto right = id(herman_light).make_call();
+              left.set_state(!any_on);
+              right.set_state(!any_on);
+              left.perform();
+              right.perform();
+            } else {
+              controls.page = HOME;
+            }
+          } else if (gesture == LONG) {
+            if (controls.page == HOME) {
+              controls.page = MENU;
+              controls.menu_item = 0;
+            } else if (controls.page == MENU) {
+              if (controls.menu_item == 2) {
+                lamp->toggle().perform();
+              } else {
+                controls.page = controls.menu_item == 0 ? COLOR : BRIGHTNESS;
+                // Entry previews existing settings; it does not advance them.
+                if (!lamp->remote_values.is_on()) lamp->turn_on().perform();
+              }
+            } else {
+              controls.page = MENU;
+            }
+          }
+          // HA does not change UI navigation, wake the LCD or reset idle time.
+          if (controls.sleeping != id(backlight_sleeping)) {
+            uint8_t pwm = controls.sleeping ? ${screen_idle_pwm} : ${screen_active_pwm};
+            if (id(lcd_driver).write_byte(0x0E, pwm))
+              id(backlight_sleeping) = controls.sleeping;
+          }
+
+display:
+  - platform: mipi_spi
+    id: lcd
+    model: ${lcd_model}
+    dc_pin: GPIO42
+    reset_pin: GPIO48
+    cs_pin: GPIO14
+    data_rate: 20MHz
+    dimensions:
+      width: 128
+      height: 128
+      offset_width: ${lcd_offset_x}
+      offset_height: ${lcd_offset_y}
+      pad_width: 2
+      pad_height: ${lcd_pad_y}
+    rotation: ${lcd_rotation}
+    invert_colors: ${lcd_invert}
+    color_order: BGR
+    update_interval: 100ms
+    lambda: |-
+      kids_lamp::draw(it, id(ui), id(polina_light), id(herman_light), millis());
