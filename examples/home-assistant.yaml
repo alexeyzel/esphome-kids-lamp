@@ -1,0 +1,13 @@
+# Paste this into the existing kids-night-lamp device in ESPHome Device Builder.
+# Keep your existing secrets.yaml. ESPHome 2026.10.0+ is required.
+packages:
+  kids_night_lamp:
+    url: https://github.com/alexeyzel/esphome-kids-lamp
+    ref: main
+    files: [kids-night-lamp.yaml]
+    refresh: 0s
+
+# For an older GC9107 panel, uncomment:
+# substitutions:
+#   lcd_model: GC9107
+#   lcd_pad_y: '1'
