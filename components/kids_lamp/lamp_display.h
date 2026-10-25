@@ -28,16 +28,22 @@ inline void draw(esphome::display::Display &it, const Controls &ui,
     it.horizontal_line(x - r / 2 + 1, y + r + 8, r - 1, c);
   };
   auto sun = [&](int x, int y, int r, Color c) {
-    it.circle(x, y, r, c);
+    int stroke = r >= 15 ? 3 : 1;
+    for (int s = 0; s < stroke; s++) it.circle(x, y, r - s, c);
     for (int i = 0; i < 8; i++) {
       float a = i * 0.785398f;
-      it.line(x + int((r + 4) * cosf(a)), y + int((r + 4) * sinf(a)),
-              x + int((r + 8) * cosf(a)), y + int((r + 8) * sinf(a)), c);
+      int outer = r + (r >= 15 ? 13 : 8);
+      for (int s = 0; s < stroke; s++) {
+        int dx = int(lroundf((s - stroke / 2) * -sinf(a)));
+        int dy = int(lroundf((s - stroke / 2) * cosf(a)));
+        it.line(x + int((r + 4) * cosf(a)) + dx, y + int((r + 4) * sinf(a)) + dy,
+                x + int(outer * cosf(a)) + dx, y + int(outer * sinf(a)) + dy, c);
+      }
     }
   };
   auto power = [&](int x, int y, int r, Color c, bool on) {
-    it.circle(x, y, r, c);
-    it.filled_rectangle(x - 5, y - r - 2, 11, r + 2, black);
+    for (int s = 0; s < 3; s++) it.circle(x, y, r - s, c);
+    it.filled_rectangle(x - 8, y - r - 2, 17, r + 2, black);
     it.filled_rectangle(x - 1, y - r - 4, 3, r + 5, c);
     if (on) it.filled_circle(x, y + 5, 3, c);
   };
@@ -46,7 +52,7 @@ inline void draw(esphome::display::Display &it, const Controls &ui,
       const auto &p = PALETTE[i];
       float a = i * 1.256637f - 1.570796f;
       it.filled_circle(x + int(r * cosf(a)), y + int(r * sinf(a)),
-                       r < 15 ? 3 : 6, Color(p.r * 255, p.g * 255, p.b * 255));
+                       r < 15 ? 3 : 9, Color(p.r * 255, p.g * 255, p.b * 255));
     }
   };
   auto digit = [&](int x, int y, int n) {
@@ -62,7 +68,9 @@ inline void draw(esphome::display::Display &it, const Controls &ui,
   };
 
   if (ui.sleeping) {
-    bulb(64, 62, 7, Color(65, 55, 45), false);
+    // Static, warm locator. Keep the existing low backlight PWM; tune in-room.
+    it.filled_circle(64, 61, 20, Color(36, 29, 22));
+    it.filled_circle(73, 53, 19, black);
     return;
   }
 
@@ -81,14 +89,19 @@ inline void draw(esphome::display::Display &it, const Controls &ui,
       bulb(x, 73, 13, z.is_on() ? c : muted, z.is_on());
     }
   } else {
-    arrow(64 + (ui.selected == 0 ? 7 : -7), 8, ui.selected == 1, 14, accent);
+    int zone_x = ui.page == MENU ? 20 : 64;
+    arrow(zone_x + (ui.selected == 0 ? 7 : -7), 8, ui.selected == 1, 14, accent);
     it.filled_circle(112, 12, 4, on ? actual : muted);
     if (ui.page == MENU) {
-      palette(22, 60, 12);
-      sun(64, 60, 7, ink);
-      power(106, 60, 10, on ? accent : ink, on);
-      it.rectangle(2 + ui.menu_item * 42, 35, 40, 53, accent);
-      it.filled_rectangle(10, 100, int(v.get_brightness() * 108), 5, actual);
+      // One large item at a time, in the same color/brightness/power order.
+      if (ui.menu_item == 0) palette(64, 65, 23);
+      else if (ui.menu_item == 1) sun(64, 65, 17, accent);
+      else power(64, 65, 25, on ? accent : ink, on);
+      for (int i = 0; i < 3; i++) {
+        bool selected = i == ui.menu_item;
+        it.filled_circle(48 + i * 16, 112, selected ? 4 : 2,
+                         selected ? accent : muted);
+      }
     } else if (ui.page == COLOR) {
       it.filled_circle(64, 55, 22, actual);
       int current = palette_index(v.get_red(), v.get_green(), v.get_blue());

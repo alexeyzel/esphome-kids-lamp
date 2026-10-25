@@ -10,7 +10,7 @@ substitutions:
   lcd_rotation: '180'
   lcd_invert: 'true'
   screen_active_pwm: '80'
-  screen_idle_pwm: '3'
+  screen_idle_pwm: '128'  # 50% of the 0-255 backlight PWM range.
   long_press_ms: '700'
   double_click_ms: '350'
   screen_idle_ms: '30000'
