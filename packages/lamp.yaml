@@ -111,8 +111,8 @@ light:
       state: OFF
 
   - platform: partition
-    id: polina_light
-    name: "Нічник Поліни"
+    id: zone_1_light
+    name: "Нічник — зона 1"
     segments:
       - id: led_rings
         from: 0
@@ -128,8 +128,8 @@ light:
       blue: 70%
 
   - platform: partition
-    id: herman_light
-    name: "Нічник Германа"
+    id: zone_2_light
+    name: "Нічник — зона 2"
     segments:
       - id: led_rings
         from: 8
@@ -149,14 +149,14 @@ button:
     name: "Увімкнути обидва"
     icon: mdi:lightbulb-group
     on_press:
-      - light.turn_on: polina_light
-      - light.turn_on: herman_light
+      - light.turn_on: zone_1_light
+      - light.turn_on: zone_2_light
   - platform: template
     name: "Вимкнути обидва"
     icon: mdi:lightbulb-group-off
     on_press:
-      - light.turn_off: polina_light
-      - light.turn_off: herman_light
+      - light.turn_off: zone_1_light
+      - light.turn_off: zone_2_light
 
 binary_sensor:
   - platform: gpio
@@ -176,7 +176,7 @@ interval:
           auto &controls = id(ui);
           const auto gesture = controls.poll(millis(), id(front_button).state);
           using namespace kids_lamp;
-          auto *lamp = controls.selected == 0 ? id(polina_light) : id(herman_light);
+          auto *lamp = controls.selected == 0 ? id(zone_1_light) : id(zone_2_light);
           if (gesture == SINGLE) {
             if (controls.page == HOME) {
               controls.selected ^= 1;
@@ -195,10 +195,10 @@ interval:
             }
           } else if (gesture == DOUBLE) {
             if (controls.page == HOME) {
-              bool any_on = id(polina_light).remote_values.is_on() ||
-                            id(herman_light).remote_values.is_on();
-              auto left = id(polina_light).make_call();
-              auto right = id(herman_light).make_call();
+              bool any_on = id(zone_1_light).remote_values.is_on() ||
+                            id(zone_2_light).remote_values.is_on();
+              auto left = id(zone_1_light).make_call();
+              auto right = id(zone_2_light).make_call();
               left.set_state(!any_on);
               right.set_state(!any_on);
               left.perform();
@@ -249,4 +249,4 @@ display:
     color_order: BGR
     update_interval: 100ms
     lambda: |-
-      kids_lamp::draw(it, id(ui), id(polina_light), id(herman_light), millis());
+      kids_lamp::draw(it, id(ui), id(zone_1_light), id(zone_2_light), millis());

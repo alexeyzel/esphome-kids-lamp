@@ -4,3 +4,16 @@ secrets.yaml
 .esphome/
 .validation/
 __pycache__/
+
+# Local credentials, exports and build products
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.bin
+*.elf
+*.exe
+*.log
+.DS_Store
+Thumbs.db
